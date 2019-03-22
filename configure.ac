@@ -19,7 +19,15 @@ AC_PROG_CC
 AC_PROG_INSTALL
 #AC_PROG_LIBTOOL
 
-AX_GCC_ARCHFLAG
+# Checks for libraries.
+AX_PTHREAD
+LIBS="$PTHREAD_LIBS $LIBS"
+CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"
+CC="$PTHREAD_CC"
+
+# gcc arch flag
+#AX_GCC_ARCHFLAG
 
 # keep this order
 AC_CHECK_LIB(gf2x, gf2x_mul)
@@ -39,7 +47,7 @@ AC_CHECK_HEADERS([inttypes.h stdint.h stdlib.h])
 AC_LANG_PUSH(C++)
 AX_CXX_COMPILE_STDCXX_0X
 
-AX_CXX_COMPILE_STDCXX_14(noext, optional) // keep this order
+AX_CXX_COMPILE_STDCXX_14(noext, optional) # keep this order
 AX_CXX_COMPILE_STDCXX_11(noext, optional)
 AC_LANG_POP
 
