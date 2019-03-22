@@ -164,8 +164,8 @@ namespace MTToolBox {
             lung.u64[0] = 0;
             lung.u64[1] = 0;
             prefix = 0;
-            fixed = false;
-            fixedSL1 = 0;
+            fixedSL1 = -1;
+            fixedPOS1 = -1;
         }
 
         ~dSFMT() {
@@ -188,8 +188,8 @@ namespace MTToolBox {
             weight_mode = src.weight_mode;
             previous = src.previous;
             prefix = src.prefix;
-            fixed = src.fixed;
             fixedSL1 = src.fixedSL1;
+            fixedPOS1 = src.fixedPOS1;
         }
 
         /**
@@ -212,8 +212,8 @@ namespace MTToolBox {
             lung.u64[0] = 0;
             lung.u64[1] = 0;
             prefix = 0;
-            fixed = false;
-            fixedSL1 = 0;
+            fixedSL1 = -1;
+            fixedPOS1 = -1;
         }
 
         EquidistributionCalculatable<w128_t> * clone() const {
@@ -375,8 +375,12 @@ namespace MTToolBox {
          * @param num sequential number
          */
         void setUpParam(ParameterGenerator& mt) {
-            param.pos1 = mt.getUint64() % (size - 2) + 1;
-            if (fixed) {
+            if (fixedPOS1 > 0) {
+                param.pos1 = fixedPOS1;
+            } else {
+                param.pos1 = mt.getUint64() % (size - 2) + 1;
+            }
+            if (fixedSL1 > 0) {
                 param.sl1 = fixedSL1;
             } else {
                 param.sl1 = mt.getUint64() % (52 - 1) + 1;
@@ -600,11 +604,11 @@ namespace MTToolBox {
             }
             return 0;
         }
-        void setFixed(bool value) {
-            fixed = value;
-        }
         void setFixedSL1(int value) {
             fixedSL1 = value;
+        }
+        void setFixedPOS1(int value) {
+            fixedPOS1 = value;
         }
     private:
         dSFMT& operator=(const dSFMT&) {
@@ -625,7 +629,7 @@ namespace MTToolBox {
         }
         enum {sr1 = 12};
         int fixedSL1;
-        bool fixed;
+        int fixedPOS1;
         int size;
         int index;
         int start_mode;

@@ -35,6 +35,7 @@
 #include "AlgorithmDSFMTEquidistribution.hpp"
 #include "Annihilate.h"
 #include "calc_fixpoint.h"
+#include "mpicontrol.hpp"
 
 using namespace std;
 using namespace MTToolBox;
@@ -44,8 +45,8 @@ class options {
 public:
     int mexp;
     bool verbose;
-    bool fixed;
     int fixedSL1;
+    int fixedPOS1;
     uint64_t seed;
     std::string filename;
     long count;
@@ -63,11 +64,36 @@ int search(options& opt, int count);
  * @return 0 if this ends normally
  */
 int main(int argc, char** argv) {
+    MPIControl mpi(&argc, &argv);
     options opt;
     bool parse = parse_opt(opt, argc, argv);
     if (!parse) {
         return -1;
     }
+// MPI OUTPUT CHANGE
+#if !defined(NO_MPI)
+    char * pgm = argv[0];
+    char fname[500];
+
+    opt.seed += mpi.getRank();
+    sprintf(fname, "%s-%d-%d-%d-%04d.txt",
+            pgm, opt.mexp, opt.seed, mpi.getRank());
+    int fd;
+    errno = 0;
+    fd = open(fname, O_WRONLY | O_CREAT, 0660);
+    if (fd < 0) {
+        printf("%s: open file error\n", pgm);
+        // MPI_Finalize(); デストラクタでやってる
+        return 1;
+    }
+    dup2(fd, 1);
+    if (errno) {
+        printf("%s: dup error.\n", argv[0]);
+        close(fd);
+        // MPI_Finalize();デストラクタでやってる
+        return 1;
+    }
+#endif
     return search(opt, opt.count);
 }
 
@@ -86,9 +112,11 @@ int search(options& opt, int count) {
         time_t t = time(NULL);
         cout << "search start at " << ctime(&t);
     }
-    if (opt.fixed) {
-        g.setFixed(true);
+    if (opt.fixedSL1 > 0) {
         g.setFixedSL1(opt.fixedSL1);
+    }
+    if (opt.fixedPOS1 > 0) {
+        g.setFixedPOS1(opt.fixedPOS1);
     }
     AlgorithmReducibleRecursionSearch<w128_t> ars(g, mt);
     int i = 0;
@@ -156,8 +184,8 @@ bool parse_opt(options& opt, int argc, char **argv) {
     opt.count = 1;
     opt.seed = (uint64_t)clock();
     opt.filename = "";
-    opt.fixed = false;
-    opt.fixedSL1 = 19;
+    opt.fixedSL1 = -1;
+    opt.fixedPOS1 = -1;
     int c;
     bool error = false;
     string pgm = argv[0];
@@ -166,11 +194,12 @@ bool parse_opt(options& opt, int argc, char **argv) {
         {"file", required_argument, NULL, 'f'},
         {"count", required_argument, NULL, 'c'},
         {"seed", required_argument, NULL, 's'},
-        {"fixed", optional_argument, NULL, 'x'},
+        {"fixed-sl1", required_argument, NULL, 'x'},
+        {"fixed-pos1", required_argument, NULL, 'X'},
         {NULL, 0, NULL, 0}};
     errno = 0;
     for (;;) {
-        c = getopt_long(argc, argv, "vs:f:c:x::", longopts, NULL);
+        c = getopt_long(argc, argv, "vs:f:c:x:X:", longopts, NULL);
         if (error) {
             break;
         }
@@ -186,16 +215,17 @@ bool parse_opt(options& opt, int argc, char **argv) {
             }
             break;
         case 'x':
-            opt.fixed = true;
-            //if ((optarg != NULL) && (strlen(optarg) > 0)) {
-            if (optarg != NULL) {
-                opt.fixedSL1 = strtoull(optarg, NULL, 0);
-                if (errno) {
-                    error = true;
-                    cerr << "fixed sl1 must be a number" << endl;
-                }
-            } else {
-                opt.fixedSL1 = 19;
+            opt.fixedSL1 = strtoull(optarg, NULL, 0);
+            if (errno) {
+                error = true;
+                cerr << "fixed sl1 must be a number" << endl;
+            }
+            break;
+        case 'X':
+            opt.fixedPOS1 = strtoull(optarg, NULL, 0);
+            if (errno) {
+                error = true;
+                cerr << "fixed pos1 must be a number" << endl;
             }
             break;
         case 'v':
@@ -282,7 +312,8 @@ static void output_help(string& pgm) {
 "                     option, parameters are outputted to standard output.\n"
 "--count, -c count    Output count. The number of parameters to be outputted.\n"
 "--seed, -s seed      seed of randomness.\n"
-"--fixed, -x fixedSL  fix the parameter sl1 to given value.\n"
+"--fixed-sl1          fix the parameter sl1 to given value.\n"
+"--fixed-pos1         fix the parameter pos1 to given value.\n"
 "mexp                 mersenne exponent.\n"
         ;
     cerr << help_string1 << endl;

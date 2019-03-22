@@ -1,0 +1,40 @@
+DSFMT_PARAMS19937_H
+
+#define DSFMT_POS1      117
+#define DSFMT_SL1       19
+#define DSFMT_MSK1      UINT64_C(0x000ffafffffffb3f)
+#define DSFMT_MSK2      UINT64_C(0x000ffdfffc90fffd)
+#define DSFMT_MSK32_1   0x000ffaffU
+#define DSFMT_MSK32_2   0xfffffb3fU
+#define DSFMT_MSK32_3   0x000ffdffU
+#define DSFMT_MSK32_4   0xfc90fffdU
+#define DSFMT_FIX1      UINT64_C(0x90014964b32f4329)
+#define DSFMT_FIX2      UINT64_C(0x3b8d12ac548a7c7a)
+#define DSFMT_PCV1      UINT64_C(0x3d84e1ac0dc82880)
+#define DSFMT_PCV2      UINT64_C(0x0000000000000001)
+#define DSFMT_IDSTR     "dSFMT2-19937:117-19:ffafffffffb3f-ffdfffc90fffd"
+
+./calc_equidist 19937 117 19 000ffafffffffb3f 000ffdfffc90fffd
+19937,117,19,000ffafffffffb3f,000ffdfffc90fffd,0000000000000000,000000000000000e,0000000000000000,0000000000000000,2616
+
+117を固定
+19は固定できればいいがしなくてもいいはず。
+
+2616 以下
+
+いくらなんでもpos と shift を固定してさらに dv も指定するのは無理ではないか。
+
+
+521
+#define DSFMT_POS1      3
+#define DSFMT_SL1       25
+#define DSFMT_MSK1      UINT64_C(0x000fbfefff77efff)
+#define DSFMT_MSK2      UINT64_C(0x000ffeebfbdfbfdf)
+#define DSFMT_FIX1      UINT64_C(0xcfb393d661638469)
+#define DSFMT_FIX2      UINT64_C(0xc166867883ae2adb)
+#define DSFMT_PCV1      UINT64_C(0xccaa588000000000)
+#define DSFMT_PCV2      UINT64_C(0x0000000000000001)
+#define DSFMT_IDSTR     "dSFMT2-521:3-25:fbfefff77efff-ffeebfbdfbfdf"
+dv 83
+d 90台なら結構あるな。
+./dSFMTdc --fixed-sl1 25 --fixed-pos1 3 --seed 1 --count 100 521
