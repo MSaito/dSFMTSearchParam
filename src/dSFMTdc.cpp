@@ -75,9 +75,10 @@ int main(int argc, char** argv) {
 // MPI OUTPUT CHANGE
 #if !defined(NO_MPI)
     // MPI では .txt を付けずに指定する。それが一番簡単
+    opt.seed = opt.seed + mpi.getRank();
     if (!opt.filename.empty()) {
         char buff[200];
-        sprintf(buff, "-%03d.txt", mpi.getRank());
+        sprintf(buff, ".s%04ld-%03d.txt", opt.seed, mpi.getRank());
         opt.filename += buff;
     }
 #endif
