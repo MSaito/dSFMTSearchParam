@@ -1,0 +1,24 @@
+1 #!/bin/bash
+2 #PBS -q q-s
+3 #PBS -l select=1:ncpus=36:mpiprocs=36:mem=360gb
+4 #PBS -N TEST_JOB
+5 #PBS -o out_file
+6 #PBS -j oe
+7 export OMP_NUM_THREADS=6
+8 export KMP_AFFINITY=disabled
+9 cd /home/HPEadm/test1
+10 dplace -x2 ./test_prog > test_prog.log
+
+ 3 行目:select は vnode 数、ncpus は固定的に 36(スーパーコンピュータの場合)、mem はメモリ量を指定。 7 行目:利用するコア数(=並列度)を指定します。
+8 行目:dplace コマンドを用いる場合には、必ずこの行を指定してください。
+9 行目:実行ファイルがあるディレクトリへの移動。
+10 行目:プログラムの実行。
+注: 自動並列化及びOpenMP並列プログラムの実行時にはdplace-x2コマンド(-xオプション必要)を必ず指 定して下さい。(管理プロセスを飛ばして、実際の計算用プロセスをコア 0 番から配置するため)
+
+qsub
+qstat
+qdel
+
+icpc, icc でライブラリを再コンパイルしてインストールする必要がある。-> icpc ではNTLコンパイルエラー
+g++ でこっちをコンパイル
+リンク時に -lmpi -lmpi++ を付ける必要あり。

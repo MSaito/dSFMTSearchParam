@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <time.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <string>
 #include <sstream>
@@ -55,7 +56,7 @@ public:
 bool parse_opt(options& opt, int argc, char **argv);
 
 
-int search(options& opt, int count);
+int search(options& opt, ostream& os, int count);
 
 /**
  * parse command line option, and search parameters
@@ -70,31 +71,26 @@ int main(int argc, char** argv) {
     if (!parse) {
         return -1;
     }
+    ofstream ofs;
 // MPI OUTPUT CHANGE
 #if !defined(NO_MPI)
-    char * pgm = argv[0];
-    char fname[500];
-
-    opt.seed += mpi.getRank();
-    sprintf(fname, "%s-%d-%d-%d-%04d.txt",
-            pgm, opt.mexp, opt.seed, mpi.getRank());
-    int fd;
-    errno = 0;
-    fd = open(fname, O_WRONLY | O_CREAT, 0660);
-    if (fd < 0) {
-        printf("%s: open file error\n", pgm);
-        // MPI_Finalize(); デストラクタでやってる
-        return 1;
-    }
-    dup2(fd, 1);
-    if (errno) {
-        printf("%s: dup error.\n", argv[0]);
-        close(fd);
-        // MPI_Finalize();デストラクタでやってる
-        return 1;
+    // MPI では .txt を付けずに指定する。それが一番簡単
+    if (!opt.filename.empty()) {
+        char buff[200];
+        sprintf(buff, "-%03d.txt", mpi.getRank());
+        opt.filename += buff;
     }
 #endif
-    return search(opt, opt.count);
+    if (!opt.filename.empty()) {
+        ofs.open(opt.filename.c_str());
+        if (!ofs) {
+            cerr << "can't open file:" << opt.filename << endl;
+            return -1;
+        }
+        return search(opt, ofs, opt.count);
+    } else {
+        return search(opt, cout, opt.count);
+    }
 }
 
 /**
@@ -103,14 +99,14 @@ int main(int argc, char** argv) {
  * @param count number of parameters user requested
  * @return 0 if this ends normally
  */
-int search(options& opt, int count) {
+int search(options& opt, ostream& os, int count) {
     MersenneTwister64 mt(opt.seed);
     dSFMT g(opt.mexp);
 
-    cout << "seed = " << dec << opt.seed << endl;
+    os << "seed = " << dec << opt.seed << endl;
     if (opt.verbose) {
         time_t t = time(NULL);
-        cout << "search start at " << ctime(&t);
+        os << "search start at " << ctime(&t);
     }
     if (opt.fixedSL1 > 0) {
         g.setFixedSL1(opt.fixedSL1);
@@ -121,18 +117,18 @@ int search(options& opt, int count) {
     AlgorithmReducibleRecursionSearch<w128_t> ars(g, mt);
     int i = 0;
     AlgorithmCalculateParity<w128_t, dSFMT> cp;
-    cout << "# " << g.getHeaderString() << ", delta52"
+    os << "# " << g.getHeaderString() << ", delta52"
          << endl;
     while (i < count) {
         if (ars.start(opt.mexp * 100)) {
             GF2X irreducible = ars.getIrreducibleFactor();
             GF2X characteristic = ars.getCharacteristicPolynomial();
-            //cout << "deg irreducible = " << dec << deg(irreducible) << endl;
-            //cout << "deg characteristic = " << dec << deg(characteristic)
+            //os << "deg irreducible = " << dec << deg(irreducible) << endl;
+            //os << "deg characteristic = " << dec << deg(characteristic)
             //     << endl;
-            //cout << "deg quotient = " << dec << deg(quotient) << endl;
+            //os << "deg quotient = " << dec << deg(quotient) << endl;
             if (deg(irreducible) != opt.mexp) {
-                cout << "error" << endl;
+                os << "error" << endl;
                 return -1;
             }
             getLCMPoly(characteristic, g);
@@ -153,17 +149,17 @@ int search(options& opt, int count) {
             int delta52
                 = calc_dSFMT_equidistribution<w128_t, dSFMT>(g, veq52, 52, info,
                                                            opt.mexp);
-            cout << g.getParamString();
-            cout << dec << delta52 << endl;
+            os << g.getParamString();
+            os << dec << delta52 << endl;
             i++;
         } else {
-            cout << "search failed" << endl;
+            os << "search failed" << endl;
             break;
         }
     }
     if (opt.verbose) {
         time_t t = time(NULL);
-        cout << "search end at " << ctime(&t) << endl;
+        os << "search end at " << ctime(&t) << endl;
     }
     return 0;
 }
@@ -279,6 +275,7 @@ bool parse_opt(options& opt, int argc, char **argv) {
         }
         opt.mexp = mexp;
     }
+#if 0
     if (!opt.filename.empty()) {
         ofstream ofs(opt.filename.c_str());
         if (ofs) {
@@ -288,6 +285,7 @@ bool parse_opt(options& opt, int argc, char **argv) {
             cerr << "can't open file:" << opt.filename << endl;
         }
     }
+#endif
     if (error) {
         output_help(pgm);
         return false;

@@ -16,4 +16,4 @@ dSFMTdc_CXXFLAGS = -DNO_MPI
 LDADD = -lMTToolBox
 AM_CXXFLAGS = -Wall -O2 -Wextra -D__STDC_CONSTANT_MACROS \
               -D__STDC_FORMAT_MACROS
-EXTRA_DIST = memo.txt
+EXTRA_DIST = memo.txt Makefile.am
